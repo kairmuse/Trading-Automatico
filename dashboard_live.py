@@ -1,123 +1,139 @@
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.graph_objects as go
+import yfinance as yf
 import time
 
 # ==========================================
-# CONFIGURAZIONE API ALPACA (PAPER TRADING)
+# CONFIGURAZIONE PAGINA E TEMA "TERMINAL"
+# ==========================================
+st.set_page_config(page_title="Quant Terminal | Live", page_icon="⚡", layout="wide", initial_sidebar_state="collapsed")
+
+# Iniezione CSS per stile istituzionale (Dark & Compact)
+st.markdown("""
+    <style>
+    .stApp { background-color: #0E1117; }
+    div[data-testid="metric-container"] {
+        background-color: #1E212B; border: 1px solid #2D3139; padding: 15px; border-radius: 8px;
+    }
+    .main-header { font-family: 'Courier New', Courier, monospace; color: #00FF41; font-size: 24px; font-weight: bold;}
+    </style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# CREDENZIALI ALPACA (Da Streamlit Secrets)
 # ==========================================
 ALPACA_API_KEY = st.secrets["ALPACA_API_KEY"]
 ALPACA_SECRET_KEY = st.secrets["ALPACA_SECRET_KEY"]
 BASE_URL = "https://paper-api.alpaca.markets"
 
-HEADERS = {
-    "APCA-API-KEY-ID": ALPACA_API_KEY,
-    "APCA-API-SECRET-KEY": ALPACA_SECRET_KEY
-}
-
-# Impostazioni pagina Streamlit
-st.set_page_config(page_title="Ecosistema Trading Live", page_icon="📈", layout="wide")
+HEADERS = {"APCA-API-KEY-ID": ALPACA_API_KEY, "APCA-API-SECRET-KEY": ALPACA_SECRET_KEY}
 
 # ==========================================
-# FUNZIONI DI COLLEGAMENTO AL BROKER
+# FUNZIONI CORE
 # ==========================================
+@st.cache_data(ttl=60) # Mantiene i dati in cache per 60 sec per non sovraccaricare le API
 def get_account_info():
-    """Recupera i dati del portafoglio dal broker."""
     resp = requests.get(f"{BASE_URL}/v2/account", headers=HEADERS)
-    if resp.status_code == 200:
-        return resp.json()
-    return None
+    return resp.json() if resp.status_code == 200 else None
 
 def get_open_positions():
-    """Recupera le azioni attualmente possedute."""
     resp = requests.get(f"{BASE_URL}/v2/positions", headers=HEADERS)
-    if resp.status_code == 200:
-        return resp.json()
-    return []
+    return resp.json() if resp.status_code == 200 else []
 
 def close_all_positions():
-    """Tasto d'emergenza: chiude tutto a mercato."""
     resp = requests.delete(f"{BASE_URL}/v2/positions", headers=HEADERS)
     return resp.status_code in [200, 207]
 
+def crea_grafico_candele(ticker):
+    """Scarica i dati intraday di oggi e crea un grafico Plotly."""
+    df = yf.Ticker(ticker).history(period="1d", interval="5m")
+    fig = go.Figure(data=[go.Candlestick(
+        x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
+        increasing_line_color='#00FF41', decreasing_line_color='#FF003C'
+    )])
+    fig.update_layout(
+        title=f"Analisi Intraday: {ticker} (Candele 5m)",
+        template="plotly_dark", margin=dict(l=0, r=0, t=40, b=0),
+        xaxis_rangeslider_visible=False, paper_bgcolor="#1E212B", plot_bgcolor="#1E212B"
+    )
+    return fig
+
 # ==========================================
-# INTERFACCIA GRAFICA (UI)
+# UI: RENDER DEL TERMINALE
 # ==========================================
-st.title("🎛️ Centro di Controllo Quantitativo")
-st.markdown("Monitoraggio in tempo reale del bot esecutivo collegato ad Alpaca.")
+st.markdown('<p class="main-header">⚡ QUANTITATIVE TRADING TERMINAL v2.0</p>', unsafe_allow_html=True)
 
-# Tasto per aggiornare i dati manualmente
-if st.button("🔄 Aggiorna Dati Ora"):
-    st.rerun()
+col_agg, col_status = st.columns([8, 1])
+with col_agg:
+    if st.button("🔄 Aggiorna Flusso Dati"): st.rerun()
+with col_status:
+    st.markdown("🟢 **SYS: ONLINE**")
 
-st.divider()
-
-# Chiamata alle API
 account = get_account_info()
 posizioni = get_open_positions()
 
 if account:
-    # 1. PANNELLO METRICHE PRINCIPALI
-    st.subheader("📊 Stato del Capitale")
-    col1, col2, col3, col4 = st.columns(4)
+    # --- RIGA 1: KPI GLOBALI ---
+    eq = float(account['portfolio_value'])
+    bp = float(account['buying_power'])
+    pnl = float(account['equity']) - float(account['last_equity'])
+    pnl_perc = (pnl / float(account['last_equity'])) * 100
     
-    equity = float(account['portfolio_value'])
-    buying_power = float(account['buying_power'])
-    pnl_giornaliero = float(account['equity']) - float(account['last_equity'])
-    perc_giornaliera = (pnl_giornaliero / float(account['last_equity'])) * 100
-    
-    col1.metric("Equity Totale ($)", f"${equity:,.2f}")
-    col2.metric("Buying Power Disponibile", f"${buying_power:,.2f}")
-    col3.metric("Profitto di Oggi ($)", f"${pnl_giornaliero:,.2f}", f"{perc_giornaliera:,.2f}%")
-    col4.metric("Posizioni Attive", f"{len(posizioni)} Titoli")
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1.metric("NET LIQUIDITY", f"${eq:,.2f}")
+    kpi2.metric("BUYING POWER", f"${bp:,.2f}")
+    kpi3.metric("DAY P&L", f"${pnl:,.2f}", f"{pnl_perc:,.2f}%")
+    kpi4.metric("OPEN POSITIONS", f"{len(posizioni)}")
     
     st.divider()
+
+    # --- RIGA 2: GRAFICO & ORDER BOOK ---
+    col_chart, col_book = st.columns([2, 1]) # Il grafico occupa 2/3 dello schermo
     
-    # 2. TABELLA POSIZIONI APERTE
-    st.subheader("🛒 Portafoglio in Tempo Reale")
-    
-    if len(posizioni) > 0:
-        # Costruiamo un DataFrame pulito per visualizzare le posizioni
-        dati_posizioni = []
-        for p in posizioni:
-            dati_posizioni.append({
-                "Ticker": p['symbol'],
-                "Lati": p['side'].upper(),
-                "Quantità": p['qty'],
-                "Prezzo Ingresso": f"${float(p['avg_entry_price']):.2f}",
-                "Prezzo Attuale": f"${float(p['current_price']):.2f}",
-                "Valore Mercato": f"${float(p['market_value']):.2f}",
-                "Profitto/Perdita ($)": float(p['unrealized_pl'])
-            })
+    with col_book:
+        st.subheader("📋 Order Book (Live)")
+        if posizioni:
+            dati = []
+            for p in posizioni:
+                pl_val = float(p['unrealized_pl'])
+                pl_perc = float(p['unrealized_plpc']) * 100
+                icona = "🟢" if pl_val > 0 else "🔴"
+                dati.append({
+                    "SYM": p['symbol'],
+                    "QTY": p['qty'],
+                    "P&L": f"{icona} ${pl_val:.2f} ({pl_perc:.2f}%)"
+                })
+            st.dataframe(pd.DataFrame(dati), use_container_width=True, hide_index=True)
             
-        df = pd.DataFrame(dati_posizioni)
-        
-        # Coloriamo in verde i profitti e in rosso le perdite
-        def colora_pnl(val):
-            color = 'green' if val > 0 else 'red'
-            return f'color: {color}; font-weight: bold;'
-            
-        st.dataframe(df.style.map(colora_pnl, subset=['Profitto/Perdita ($)']), use_container_width=True)
-    else:
-        st.info("Nessuna posizione aperta. Il bot è in attesa di nuovi segnali di mercato.")
-        
+            # Selezionatore per il grafico
+            st.write("🔍 **Ispeziona Titolo:**")
+            ticker_scelto = st.selectbox("Seleziona", [p['symbol'] for p in posizioni], label_visibility="collapsed")
+        else:
+            st.info("Nessuna posizione aperta. Attendere segnali dal motore quantitativo.")
+            ticker_scelto = None
+
+    with col_chart:
+        if ticker_scelto:
+            st.plotly_chart(crea_grafico_candele(ticker_scelto), use_container_width=True)
+        else:
+            # Grafico placeholder del mercato (SP500) se non ci sono posizioni
+            st.plotly_chart(crea_grafico_candele("SPY"), use_container_width=True)
+
     st.divider()
-    
-    # 3. ZONA DI EMERGENZA (PANIC BUTTON)
-    st.subheader("🚨 Gestione Rischio (Intervento Manuale)")
-    st.warning("ATTENZIONE: Cliccando questo tasto chiuderai ISTANTANEAMENTE tutte le posizioni aperte sul conto a prezzo di mercato.")
-    
-    col_panic, _ = st.columns([1, 3])
+
+    # --- RIGA 3: ZONA EMERGENZA ---
+    st.subheader("🚨 Override Manuale")
+    col_panic, _ = st.columns([1, 4])
     with col_panic:
-        if st.button("🛑 CHIUDI TUTTE LE POSIZIONI", type="primary"):
-            with st.spinner("Invio ordine di liquidazione totale al broker..."):
-                successo = close_all_positions()
-                time.sleep(2) # Pausa per permettere al broker di processare
-                if successo:
-                    st.success("Tutte le posizioni sono state chiuse con successo!")
+        if st.button("🛑 LIQUIDA PORTAFOGLIO", type="primary", use_container_width=True):
+            with st.spinner("Invio ordine di liquidazione a mercato..."):
+                if close_all_positions():
+                    st.success("Operazione completata. Conto flat.")
                     time.sleep(1)
                     st.rerun()
                 else:
-                    st.error("Errore durante la chiusura delle posizioni.")
+                    st.error("Errore di routing verso il broker.")
 else:
-    st.error("Impossibile connettersi ad Alpaca. Verifica le tue API Key.")
+    st.error("Connessione API Alpaca rifiutata. Controllare i Secrets.")
