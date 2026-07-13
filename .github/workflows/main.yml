@@ -1,34 +1,36 @@
 name: Trading Bot Esecutivo
-
 on:
   schedule:
-    # Esegue ogni giorno dal lunedì al venerdì alle 20:45 UTC
-    # NOTA: GitHub usa l'orario UTC. Le 20:45 UTC corrispondono alle 21:45 in Italia (con l'ora solare) o 22:45 (con l'ora legale)
-    - cron: '45 20 * * 1-5'
-  workflow_dispatch: # Questo trucco ti permette di avviare lo script manualmente con un click per fare i test
+    - cron: '45 20 * * 1-5' # Ogni giorno alle 22:45
+  workflow_dispatch: # Permette il tasto "Run Workflow" manuale
+
+permissions:
+  contents: write  # FONDAMENTALE: permette al bot di scrivere nel repo
 
 jobs:
-  esegui-bot:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: 1. Clona il repository
-      uses: actions/checkout@v3
+      - name: Checkout del codice
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }} # Autorizzazione automatica
 
-    - name: 2. Configura Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: 3. Installa le librerie necessarie
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Installazione Librerie
+        run: pip install yfinance pandas requests
 
-    - name: 4. Esecuzione Scansione Mercati e Trading
-      env:
-        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
-        ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
-      run: python controller_completo_automatico.py
+      - name: Esecuzione Bot
+        run: python controller_completo_automatico.py
+
+      - name: Commit e Push dei Log
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add decision_log.csv
+          git commit -m "Aggiornamento log decisionale automatico"
+          git push
