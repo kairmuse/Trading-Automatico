@@ -6,8 +6,8 @@ import time
 # ==========================================
 # CONFIGURAZIONE API ALPACA (PAPER TRADING)
 # ==========================================
-ALPACA_API_KEY = "PKMB25YHQE54ZYMRHHJIGLLTP6"
-ALPACA_SECRET_KEY = "98Q8ZUVzNiXunTAEqcdNMzGzNPaRDptguijH5pjP4Kqf"
+ALPACA_API_KEY = "PKXI7EN3SIKMTWTCT7U2M7R4DZ"
+ALPACA_SECRET_KEY = "E3xykXwW3251vfi6bkKUiCuBLfpB5WCAbgXDY7aDko8T"
 BASE_URL = "https://paper-api.alpaca.markets"
 
 HEADERS = {
