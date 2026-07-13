@@ -1,11 +1,11 @@
 name: Trading Bot Esecutivo
 on:
   schedule:
-    - cron: '45 20 * * 1-5' # Ogni giorno alle 22:45
-  workflow_dispatch: # Permette il tasto "Run Workflow" manuale
+    - cron: '45 20 * * 1-5'
+  workflow_dispatch:
 
 permissions:
-  contents: write  # FONDAMENTALE: permette al bot di scrivere nel repo
+  contents: write
 
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
       - name: Checkout del codice
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }} # Autorizzazione automatica
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v4
