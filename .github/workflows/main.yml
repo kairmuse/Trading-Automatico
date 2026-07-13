@@ -25,7 +25,7 @@ jobs:
         run: pip install yfinance pandas requests
 
       - name: Esecuzione Bot
-        run: python controller_completo_automatico.py
+        run: python bot_definitivo.py
 
       - name: Commit e Push dei Log
         run: |
