@@ -22,10 +22,10 @@ BUFFER_SICUREZZA_PRO = 3.0  # -3% per vendere le Put
 TAKE_PROFIT_PERC = 10.0     # +10% per incassare i guadagni azionari
 STOP_LOSS_PERC = 5.0        # -5% per tagliare le perdite azionarie
 
-WL_OPZIONI = ["AAPL", "MSFT"]
-WL_MEAN_REV = ["AMD", "NVDA", "TSLA"]
-WL_TREND = ["AMZN", "META", "NFLX"]
-WL_SMALL_CAP = ["IWM", "PLTR", "SOFI", "ROKU"]
+WL_OPZIONI = ["AAPL", "MSFT", "GOOGL", "AMZN"]
+WL_MEAN_REV = ["AMD", "NVDA", "TSLA", "COIN", "AVGO"]
+WL_TREND = ["AMZN", "META", "NFLX", "SPOT", "UBER"]
+WL_SMALL_CAP = ["IWM", "PLTR", "SOFI", "ROKU", "HOOD", "AFRM"]
 
 # ------------------------------------------
 # FUNZIONI UTILI
