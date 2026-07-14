@@ -9,3 +9,5 @@ META,Trend,IGNORE,Nessun Breakout confermato
 NFLX,Trend,IGNORE,Nessun Breakout confermato
 IWM,SmallCap,IGNORE,Nessun Breakout di volatilità
 PLTR,SmallCap,IGNORE,Nessun Breakout di volatilità
+SOFI,SmallCap,HOLD,P&L attuale: -0.75% (In attesa)
+ROKU,SmallCap,HOLD,P&L attuale: -0.26% (In attesa)
