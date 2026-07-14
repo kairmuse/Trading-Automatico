@@ -749,7 +749,9 @@ def get_telegram_updates():
 # ==========================================
 with st.sidebar:
     st.markdown('<div class="sb-brand">◆ QUANT<span>TERMINAL</span></div>', unsafe_allow_html=True)
-    pagina = st.radio("Naviga", ["🏠  Home", "📊  Posizioni", "⚠️  Analisi Rischio", "📡  Log & Override"],
+    
+    # Rimosse le emoji dalla lista delle pagine
+    pagina = st.radio("Naviga", ["Home", "Posizioni", "Analisi Rischio", "Log & Override"],
                        label_visibility="collapsed")
 
     with st.expander("⚙️ Personalizza Widget"):
@@ -796,7 +798,9 @@ posizioni = get_open_positions()
 history = get_portfolio_history(period_param, timeframe_param)
 metriche = calcola_metriche_rischio(history) if history else None
 
-titolo_pagina = pagina.split("  ")[1]
+# Avendo rimosso le emoji, il titolo della pagina è semplicemente la stringa 'pagina'
+titolo_pagina = pagina
+
 col_t, col_s = st.columns([6, 1])
 with col_t:
     st.markdown(f"<div class='page-title'>{titolo_pagina}</div>", unsafe_allow_html=True)
@@ -822,7 +826,7 @@ leva = esposizione_totale / eq if eq else 0
 # ==========================================
 # PAGINA: HOME
 # ==========================================
-if "Home" in pagina:
+if pagina == "Home":
     if st.button("↻ Aggiorna Dati Live"):
         st.cache_data.clear()
         st.rerun()
@@ -943,7 +947,7 @@ if "Home" in pagina:
 # ==========================================
 # PAGINA: POSIZIONI
 # ==========================================
-elif "Posizioni" in pagina:
+elif pagina == "Posizioni":
     tab_attive, tab_grafico, tab_ordini = st.tabs(["Posizioni Aperte", "Grafico Titolo", "Ordini Recenti"])
 
     with tab_attive:
@@ -966,7 +970,7 @@ elif "Posizioni" in pagina:
 # ==========================================
 # PAGINA: ANALISI RISCHIO
 # ==========================================
-elif "Rischio" in pagina:
+elif pagina == "Analisi Rischio":
     st.caption(f"Periodo di analisi: {periodo_scelto} · modificabile dalla sidebar")
     r1, r2, r3, r4 = st.columns(4)
     if metriche:
@@ -998,7 +1002,7 @@ elif "Rischio" in pagina:
 # ==========================================
 # PAGINA: LOG & OVERRIDE
 # ==========================================
-elif "Log" in pagina:
+elif pagina == "Log & Override":
     col_logs, col_panic = st.columns([3, 1])
     with col_logs:
         with st.container(border=True):
