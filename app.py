@@ -13,6 +13,14 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Quant Terminal", page_icon="◆", layout="wide")
 
 # ==========================================
+# FUNZIONI DI SUPPORTO GRAFICO (Spostata in alto!)
+# ==========================================
+def hex_to_rgba(hex_color, alpha=0.1):
+    hex_color = hex_color.lstrip('#')
+    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+# ==========================================
 # GESTIONE TEMA (CHIARO/SCURO)
 # ==========================================
 if 'theme' not in st.session_state:
@@ -34,7 +42,7 @@ COLORS = COLORS_LIGHT if st.session_state.theme == 'light' else COLORS_DARK
 PLOTLY_TEMPLATE = "plotly_white" if st.session_state.theme == 'light' else "plotly_dark"
 
 # ==========================================
-# CSS PERSONALIZZATO (Niente Hamburger/Sidebar)
+# CSS PERSONALIZZATO
 # ==========================================
 st.markdown(f"""
     <style>
@@ -113,11 +121,6 @@ PLOTLY_LAYOUT = dict(
     font=dict(family="IBM Plex Mono, monospace", color=COLORS["text_dim"], size=11),
     margin=dict(l=0, r=10, t=40, b=0),
 )
-
-def hex_to_rgba(hex_color, alpha=0.1):
-    hex_color = hex_color.lstrip('#')
-    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-    return f"rgba({r}, {g}, {b}, {alpha})"
 
 # ==========================================
 # CREDENZIALI & FUNZIONI CORE
