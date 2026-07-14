@@ -754,7 +754,7 @@ with st.sidebar:
     pagina = st.radio("Naviga", ["Home", "Posizioni", "Analisi Rischio", "Log & Override"],
                        label_visibility="collapsed")
 
-    with st.expander("⚙️ Personalizza Widget"):
+    with st.expander("Personalizza Widget"):
         st.caption("Attiva o disattiva i pannelli della Home")
         WIDGET_DEFAULTS = {
             "w_account": ("Account Summary", True),
