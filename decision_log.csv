@@ -1,6 +1,11 @@
 Ticker,Strategy,Decision,Reason
-AAPL,Opzioni,ERROR,Nessun contratto Put trovato o errore API
-MSFT,Opzioni,ERROR,Nessun contratto Put trovato o errore API
+AAPL,Opzioni,ERROR,"Ordine rifiutato dal Broker: {""code"":42210000,""message"":""options market orders are only allowed during market hours""}"
+MSFT,Opzioni,ERROR,"Ordine rifiutato dal Broker: {""code"":42210000,""message"":""options market orders are only allowed during market hours""}"
 AMD,MeanRev,IGNORE,RSI 46.8 non in ipervenduto o sotto SMA200
 NVDA,MeanRev,IGNORE,RSI 52.3 non in ipervenduto o sotto SMA200
 TSLA,MeanRev,IGNORE,RSI 39.3 non in ipervenduto o sotto SMA200
+AMZN,Trend,IGNORE,Nessun Breakout confermato
+META,Trend,IGNORE,Nessun Breakout confermato
+NFLX,Trend,IGNORE,Nessun Breakout confermato
+IWM,SmallCap,IGNORE,Nessun Breakout di volatilità
+PLTR,SmallCap,IGNORE,Nessun Breakout di volatilità
