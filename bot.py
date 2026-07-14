@@ -18,7 +18,9 @@ HEADERS = {"APCA-API-KEY-ID": ALPACA_API_KEY, "APCA-API-SECRET-KEY": ALPACA_SECR
 
 # Parametri operativi
 CAPITALE_PER_TRADE = 5000
-BUFFER_SICUREZZA_PRO = 3.0  # -3% per le opzioni
+BUFFER_SICUREZZA_PRO = 3.0  # -3% per vendere le Put
+TAKE_PROFIT_PERC = 10.0     # +10% per incassare i guadagni azionari
+STOP_LOSS_PERC = 5.0        # -5% per tagliare le perdite azionarie
 
 WL_OPZIONI = ["AAPL", "MSFT"]
 WL_MEAN_REV = ["AMD", "NVDA", "TSLA"]
@@ -43,6 +45,14 @@ def invia_ordine_alpaca(ticker, azione, capitale, prezzo_attuale):
         return quantita if resp.status_code in [200, 201] else False
     except: return False
 
+def chiudi_posizione_alpaca(ticker):
+    # Chiude interamente la posizione a mercato
+    url = f"{ALPACA_BASE_URL}/v2/positions/{ticker}"
+    try:
+        resp = requests.delete(url, headers=HEADERS)
+        return resp.status_code == 200
+    except: return False
+
 def vendi_put_alpaca(ticker, prezzo_attuale, buffer_perc):
     target_strike = prezzo_attuale * (1 - (buffer_perc / 100))
     oggi = datetime.now()
@@ -51,24 +61,19 @@ def vendi_put_alpaca(ticker, prezzo_attuale, buffer_perc):
     
     url_contracts = f"{ALPACA_BASE_URL}/v2/options/contracts?underlying_symbols={ticker}&status=active&type=put&expiration_date_gte={data_min}&expiration_date_lte={data_max}"
     try:
-        # Step 1: Richiesta Dati Contratti
         resp = requests.get(url_contracts, headers=HEADERS)
-        if resp.status_code != 200: 
-            return False, f"Blocco API Dati (Firma OPRA?): {resp.text}"
+        if resp.status_code != 200: return False, f"Blocco API Dati: {resp.text}"
             
         contratti = resp.json().get('option_contracts', [])
-        if not contratti: 
-            return False, "Database opzioni vuoto per queste date."
+        if not contratti: return False, "Database opzioni vuoto per queste date."
             
         contratti_validi = [c for c in contratti if float(c['strike_price']) <= target_strike]
-        if not contratti_validi: 
-            return False, f"Nessuno strike sotto al buffer (Target: ${target_strike:.2f})"
+        if not contratti_validi: return False, f"Nessuno strike sotto al buffer (${target_strike:.2f})"
             
         contratti_validi.sort(key=lambda x: float(x['strike_price']), reverse=True)
         contratto_scelto = contratti_validi[0]['symbol']
         strike_scelto = contratti_validi[0]['strike_price']
         
-        # Step 2: Invio Ordine
         url_order = f"{ALPACA_BASE_URL}/v2/orders"
         data_order = {"symbol": contratto_scelto, "qty": "1", "side": "sell", "type": "market", "time_in_force": "day"}
         resp_order = requests.post(url_order, json=data_order, headers=HEADERS)
@@ -77,15 +82,16 @@ def vendi_put_alpaca(ticker, prezzo_attuale, buffer_perc):
             return f"{contratto_scelto} (Strike: ${strike_scelto})", "OK"
         else:
             return False, f"Ordine rifiutato dal Broker: {resp_order.text}"
-            
-    except Exception as e: 
-        return False, f"Errore di sistema Python: {str(e)}"
+    except Exception as e: return False, f"Errore Python: {str(e)}"
 
 def get_portafoglio_attivo():
+    # Ritorna un dizionario: { 'AAPL': -2.5, 'ROKU': 1.2 } (con P&L in percentuale)
     try:
         resp = requests.get(f"{ALPACA_BASE_URL}/v2/positions", headers=HEADERS)
-        return [p['symbol'] for p in resp.json()] if resp.status_code == 200 else []
-    except: return []
+        if resp.status_code == 200:
+            return {p['symbol']: float(p['unrealized_plpc']) * 100 for p in resp.json()}
+        return {}
+    except: return {}
 
 # ------------------------------------------
 # MOTORE DI SCANSIONE E LOGICA
@@ -94,11 +100,11 @@ def esegui_trading():
     print("Avvio scansione mercati...")
     report_esecuzioni = []
     log_decisioni = []
-    titoli_in_portafoglio = get_portafoglio_attivo()
+    portafoglio = get_portafoglio_attivo()
 
-    # 1. STRATEGIA OPZIONI PRO
+    # 1. STRATEGIA OPZIONI PRO (Non applica Stop Loss / Take profit standard)
     for ticker in WL_OPZIONI:
-        if any(ticker in p for p in titoli_in_portafoglio):
+        if ticker in portafoglio:
             log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "IGNORE", "Reason": "Contratto già attivo"})
             continue
         try:
@@ -113,13 +119,33 @@ def esegui_trading():
                 else:
                     log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "ERROR", "Reason": messaggio})
             else:
-                log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "IGNORE", "Reason": f"Var {var_mensile:.1f}% sotto il buffer (-{BUFFER_SICUREZZA_PRO}%)"})
+                log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "IGNORE", "Reason": f"Var {var_mensile:.1f}% sotto il buffer"})
         except Exception as e:
             log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "ERROR", "Reason": str(e)})
 
+    # GESTORE PORTAFOGLIO: TAKE PROFIT E STOP LOSS
+    def gestisci_posizione(ticker, strategia):
+        pl_perc = portafoglio[ticker]
+        if pl_perc >= TAKE_PROFIT_PERC:
+            if chiudi_posizione_alpaca(ticker):
+                report_esecuzioni.append(f"💰 **TAKE PROFIT**: Chiusa posizione su `{ticker}` a +{pl_perc:.2f}%")
+                log_decisioni.append({"Ticker": ticker, "Strategy": strategia, "Decision": "SELL (TP)", "Reason": f"Raggiunto Target +{pl_perc:.2f}%"})
+            else:
+                log_decisioni.append({"Ticker": ticker, "Strategy": strategia, "Decision": "ERROR", "Reason": "Impossibile chiudere posizione per TP"})
+        elif pl_perc <= -STOP_LOSS_PERC:
+            if chiudi_posizione_alpaca(ticker):
+                report_esecuzioni.append(f"🛑 **STOP LOSS**: Chiusa posizione su `{ticker}` a {pl_perc:.2f}%")
+                log_decisioni.append({"Ticker": ticker, "Strategy": strategia, "Decision": "SELL (SL)", "Reason": f"Scattato Stop a {pl_perc:.2f}%"})
+            else:
+                log_decisioni.append({"Ticker": ticker, "Strategy": strategia, "Decision": "ERROR", "Reason": "Impossibile chiudere posizione per SL"})
+        else:
+            log_decisioni.append({"Ticker": ticker, "Strategy": strategia, "Decision": "HOLD", "Reason": f"P&L attuale: {pl_perc:.2f}% (In attesa)"})
+
     # 2. STRATEGIA MEAN REVERSION
     for ticker in WL_MEAN_REV:
-        if ticker in titoli_in_portafoglio: continue
+        if ticker in portafoglio:
+            gestisci_posizione(ticker, "MeanRev")
+            continue
         try:
             df = yf.Ticker(ticker).history(period="1y")
             df['SMA200'] = df['Close'].rolling(200).mean()
@@ -143,7 +169,9 @@ def esegui_trading():
 
     # 3. STRATEGIA TREND FOLLOWING
     for ticker in WL_TREND:
-        if ticker in titoli_in_portafoglio: continue
+        if ticker in portafoglio:
+            gestisci_posizione(ticker, "Trend")
+            continue
         try:
             df = yf.Ticker(ticker).history(period="1y")
             df['SMA200'] = df['Close'].rolling(window=200).mean()
@@ -162,9 +190,11 @@ def esegui_trading():
         except Exception as e:
             log_decisioni.append({"Ticker": ticker, "Strategy": "Trend", "Decision": "ERROR", "Reason": str(e)})
 
-    # 4. STRATEGIA SMALL CAP (Bande di Bollinger)
+    # 4. STRATEGIA SMALL CAP
     for ticker in WL_SMALL_CAP:
-        if ticker in titoli_in_portafoglio: continue
+        if ticker in portafoglio:
+            gestisci_posizione(ticker, "SmallCap")
+            continue
         try:
             df = yf.Ticker(ticker).history(period="6mo")
             df['SMA50'] = df['Close'].rolling(window=50).mean()
@@ -191,7 +221,7 @@ def esegui_trading():
         msg = "🤖 **NOTIFICA BOT DI TRADING**\n\n" + "\n\n".join(report_esecuzioni)
         send_telegram_msg(msg)
     else:
-        send_telegram_msg("🤖 Scansione completata. Nessuna operazione eseguita. Log salvati sulla Dashboard.")
+        send_telegram_msg("🤖 Scansione completata. Nessuna operazione di acquisto o chiusura eseguita. Log salvati.")
 
 if __name__ == "__main__":
     esegui_trading()
