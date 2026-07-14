@@ -627,11 +627,15 @@ def get_watchlist_snapshot(tickers):
     righe = []
     for t in tickers:
         try:
-            info = yf.Ticker(t).fast_info
-            prezzo = info.get("last_price")
-            prev = info.get("previous_close")
-            if prezzo and prev:
+            # Usiamo history invece di fast_info perché è stabile a mercati chiusi
+            df = yf.Ticker(t).history(period="2d")
+            if len(df) >= 2:
+                prezzo = float(df['Close'].iloc[-1])
+                prev = float(df['Close'].iloc[-2])
                 righe.append({"symbol": t, "price": prezzo, "change": (prezzo - prev) / prev * 100})
+            elif len(df) == 1:
+                prezzo = float(df['Close'].iloc[-1])
+                righe.append({"symbol": t, "price": prezzo, "change": 0.0})
         except Exception:
             continue
     return righe
