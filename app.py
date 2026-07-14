@@ -773,7 +773,7 @@ with st.sidebar:
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.caption("Simboli Watchlist (separati da virgola)")
-        watchlist_input = st.text_input("watchlist_input", value=st.session_state.get("watchlist_tickers", "SPY, QQQ, AAPL"), label_visibility="collapsed")
+        watchlist_input = st.text_input("watchlist_input", value=st.session_state.get("watchlist_tickers", ""), label_visibility="collapsed")
         st.session_state["watchlist_tickers"] = watchlist_input
 
     st.markdown("<div class='card-title' style='margin-top:6px;'>Periodo Analisi</div>", unsafe_allow_html=True)
@@ -831,7 +831,7 @@ if "Home" in pagina:
 
     simboli_disponibili = [p['symbol'] for p in posizioni] if posizioni else []
     simboli_disponibili = list(dict.fromkeys(simboli_disponibili + ["SPY", "QQQ", "AAPL", "TSLA", "NVDA"]))
-    watchlist_tickers = [t.strip().upper() for t in st.session_state.get("watchlist_tickers", "SPY, QQQ, AAPL").split(",") if t.strip()]
+    watchlist_tickers = [t.strip().upper() for t in st.session_state.get("watchlist_tickers", "AAPL, MSFT, GOOGL, AMZN, AMD, NVDA, TSLA, COIN, AVGO, META, NFLX, SPOT, UBER, IWM, PLTR, SOFI, ROKU, HOOD, AFRM").split(",") if t.strip()]
 
     def w_account_summary():
         with st.container(border=True):
