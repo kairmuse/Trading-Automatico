@@ -1,0 +1,41 @@
+name: Trading Bot Run
+on:
+  schedule:
+    - cron: '45 20 * * 1-5' # Gira lun-ven alle 22:45
+  workflow_dispatch: # Bottone per avvio manuale
+
+permissions:
+  contents: write
+
+jobs:
+  run-trading:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Installazione Dipendenze Veloci
+        run: pip install yfinance pandas requests numpy
+
+      - name: Esecuzione Algoritmo
+        run: python bot.py
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+
+      - name: Commit e Push Log sulla Dashboard
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add decision_log.csv || true
+          git commit -m "Aggiornamento log decisioni" || true
+          git push || true
