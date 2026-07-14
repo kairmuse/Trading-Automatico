@@ -1,0 +1,6 @@
+Ticker,Strategy,Decision,Reason
+AAPL,Opzioni,ERROR,Nessun contratto Put trovato o errore API
+MSFT,Opzioni,ERROR,Nessun contratto Put trovato o errore API
+AMD,MeanRev,IGNORE,RSI 46.8 non in ipervenduto o sotto SMA200
+NVDA,MeanRev,IGNORE,RSI 52.3 non in ipervenduto o sotto SMA200
+TSLA,MeanRev,IGNORE,RSI 39.3 non in ipervenduto o sotto SMA200
