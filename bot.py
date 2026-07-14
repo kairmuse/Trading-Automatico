@@ -3,11 +3,11 @@ import pandas as pd
 import requests
 import numpy as np
 from datetime import datetime, timedelta
+import os
 
 # ==========================================
 # CREDENZIALI API (GitHub Secrets)
 # ==========================================
-import os
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "8815402200:AAEOwcUUvrfk82DPWQRhZOaF9zNrTxgw8qQ")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "7864993931")
 ALPACA_API_KEY = os.getenv("ALPACA_API_KEY", "PKXI7EN3SIKMTWTCT7U2M7R4DZ")
@@ -51,20 +51,35 @@ def vendi_put_alpaca(ticker, prezzo_attuale, buffer_perc):
     
     url_contracts = f"{ALPACA_BASE_URL}/v2/options/contracts?underlying_symbols={ticker}&status=active&type=put&expiration_date_gte={data_min}&expiration_date_lte={data_max}"
     try:
+        # Step 1: Richiesta Dati Contratti
         resp = requests.get(url_contracts, headers=HEADERS)
-        if resp.status_code != 200: return False
+        if resp.status_code != 200: 
+            return False, f"Blocco API Dati (Firma OPRA mancante?): {resp.text}"
+            
         contratti = resp.json().get('option_contracts', [])
+        if not contratti: 
+            return False, "Database opzioni vuoto per queste date."
+            
         contratti_validi = [c for c in contratti if float(c['strike_price']) <= target_strike]
-        if not contratti_validi: return False
+        if not contratti_validi: 
+            return False, f"Nessuno strike sotto al buffer (Target: ${target_strike:.2f})"
+            
         contratti_validi.sort(key=lambda x: float(x['strike_price']), reverse=True)
         contratto_scelto = contratti_validi[0]['symbol']
         strike_scelto = contratti_validi[0]['strike_price']
         
+        # Step 2: Invio Ordine
         url_order = f"{ALPACA_BASE_URL}/v2/orders"
         data_order = {"symbol": contratto_scelto, "qty": "1", "side": "sell", "type": "market", "time_in_force": "day"}
         resp_order = requests.post(url_order, json=data_order, headers=HEADERS)
-        return f"{contratto_scelto} (Strike: ${strike_scelto})" if resp_order.status_code in [200, 201] else False
-    except: return False
+        
+        if resp_order.status_code in [200, 201]:
+            return f"{contratto_scelto} (Strike: ${strike_scelto})", "OK"
+        else:
+            return False, f"Ordine rifiutato dal Broker: {resp_order.text}"
+            
+    except Exception as e: 
+        return False, f"Errore di sistema Python: {str(e)}"
 
 def get_portafoglio_attivo():
     try:
@@ -89,13 +104,14 @@ def esegui_trading():
         try:
             df = yf.Ticker(ticker).history(period="1mo")
             var_mensile = ((df['Close'].iloc[-1] - df['Open'].iloc[0]) / df['Open'].iloc[0]) * 100
+            
             if var_mensile >= -BUFFER_SICUREZZA_PRO:
-                esito = vendi_put_alpaca(ticker, df['Close'].iloc[-1], BUFFER_SICUREZZA_PRO)
+                esito, messaggio = vendi_put_alpaca(ticker, df['Close'].iloc[-1], BUFFER_SICUREZZA_PRO)
                 if esito:
                     report_esecuzioni.append(f"🛡️ **AUTO-SELL (Opzioni)**: Venduta Put su `{ticker}` ({esito})")
                     log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "SELL PUT", "Reason": f"Var {var_mensile:.1f}% stabile"})
                 else:
-                    log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "ERROR", "Reason": "Nessun contratto Put trovato o errore API"})
+                    log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "ERROR", "Reason": messaggio})
             else:
                 log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "IGNORE", "Reason": f"Var {var_mensile:.1f}% sotto il buffer"})
         except Exception as e:
