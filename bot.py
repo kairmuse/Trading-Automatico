@@ -54,7 +54,7 @@ def vendi_put_alpaca(ticker, prezzo_attuale, buffer_perc):
         # Step 1: Richiesta Dati Contratti
         resp = requests.get(url_contracts, headers=HEADERS)
         if resp.status_code != 200: 
-            return False, f"Blocco API Dati (Firma OPRA mancante?): {resp.text}"
+            return False, f"Blocco API Dati (Firma OPRA?): {resp.text}"
             
         contratti = resp.json().get('option_contracts', [])
         if not contratti: 
@@ -113,7 +113,7 @@ def esegui_trading():
                 else:
                     log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "ERROR", "Reason": messaggio})
             else:
-                log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "IGNORE", "Reason": f"Var {var_mensile:.1f}% sotto il buffer"})
+                log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "IGNORE", "Reason": f"Var {var_mensile:.1f}% sotto il buffer (-{BUFFER_SICUREZZA_PRO}%)"})
         except Exception as e:
             log_decisioni.append({"Ticker": ticker, "Strategy": "Opzioni", "Decision": "ERROR", "Reason": str(e)})
 
@@ -133,13 +133,55 @@ def esegui_trading():
                 qty = invia_ordine_alpaca(ticker, "buy", CAPITALE_PER_TRADE, oggi['Close'])
                 if qty:
                     report_esecuzioni.append(f"🛒 **AUTO-BUY (Mean Rev)**: Comprate `{qty}` azioni di `{ticker}`")
-                    log_decisioni.append({"Ticker": ticker, "Strategy": "MeanRev", "Decision": "BUY", "Reason": f"Prezzo sopra SMA200 e RSI {oggi['RSI4']:.1f} < 20"})
+                    log_decisioni.append({"Ticker": ticker, "Strategy": "MeanRev", "Decision": "BUY", "Reason": f"RSI {oggi['RSI4']:.1f} < 20 e sopra SMA200"})
                 else:
                     log_decisioni.append({"Ticker": ticker, "Strategy": "MeanRev", "Decision": "ERROR", "Reason": "Errore invio ordine Alpaca"})
             else:
                 log_decisioni.append({"Ticker": ticker, "Strategy": "MeanRev", "Decision": "IGNORE", "Reason": f"RSI {oggi['RSI4']:.1f} non in ipervenduto o sotto SMA200"})
         except Exception as e:
             log_decisioni.append({"Ticker": ticker, "Strategy": "MeanRev", "Decision": "ERROR", "Reason": str(e)})
+
+    # 3. STRATEGIA TREND FOLLOWING
+    for ticker in WL_TREND:
+        if ticker in titoli_in_portafoglio: continue
+        try:
+            df = yf.Ticker(ticker).history(period="1y")
+            df['SMA200'] = df['Close'].rolling(window=200).mean()
+            df['Max20'] = df['High'].rolling(window=20).max().shift(1)
+            oggi = df.iloc[-1]
+            
+            if oggi['Close'] > oggi['Max20'] and oggi['Close'] > oggi['SMA200']:
+                qty = invia_ordine_alpaca(ticker, "buy", CAPITALE_PER_TRADE, oggi['Close'])
+                if qty:
+                    report_esecuzioni.append(f"🔥 **AUTO-BUY (Trend)**: Breakout su `{ticker}`. Comprate `{qty}` azioni.")
+                    log_decisioni.append({"Ticker": ticker, "Strategy": "Trend", "Decision": "BUY", "Reason": "Breakout Max 20 Giorni e sopra SMA200"})
+                else:
+                    log_decisioni.append({"Ticker": ticker, "Strategy": "Trend", "Decision": "ERROR", "Reason": "Errore invio ordine Alpaca"})
+            else:
+                log_decisioni.append({"Ticker": ticker, "Strategy": "Trend", "Decision": "IGNORE", "Reason": "Nessun Breakout confermato"})
+        except Exception as e:
+            log_decisioni.append({"Ticker": ticker, "Strategy": "Trend", "Decision": "ERROR", "Reason": str(e)})
+
+    # 4. STRATEGIA SMALL CAP (Bande di Bollinger)
+    for ticker in WL_SMALL_CAP:
+        if ticker in titoli_in_portafoglio: continue
+        try:
+            df = yf.Ticker(ticker).history(period="6mo")
+            df['SMA50'] = df['Close'].rolling(window=50).mean()
+            df['Upper'] = df['SMA50'] + (df['Close'].rolling(window=20).std() * 2)
+            oggi = df.iloc[-1]
+            
+            if oggi['Close'] > oggi['Upper']:
+                qty = invia_ordine_alpaca(ticker, "buy", CAPITALE_PER_TRADE, oggi['Close'])
+                if qty:
+                    report_esecuzioni.append(f"🚀 **AUTO-BUY (Small Cap)**: Esplosione volumi su `{ticker}`. Comprate `{qty}` azioni.")
+                    log_decisioni.append({"Ticker": ticker, "Strategy": "SmallCap", "Decision": "BUY", "Reason": "Breakout Banda Bollinger Superiore"})
+                else:
+                    log_decisioni.append({"Ticker": ticker, "Strategy": "SmallCap", "Decision": "ERROR", "Reason": "Errore invio ordine Alpaca"})
+            else:
+                log_decisioni.append({"Ticker": ticker, "Strategy": "SmallCap", "Decision": "IGNORE", "Reason": "Nessun Breakout di volatilità"})
+        except Exception as e:
+            log_decisioni.append({"Ticker": ticker, "Strategy": "SmallCap", "Decision": "ERROR", "Reason": str(e)})
 
     # Salvataggio log su CSV
     pd.DataFrame(log_decisioni).to_csv("decision_log.csv", index=False)
@@ -149,7 +191,7 @@ def esegui_trading():
         msg = "🤖 **NOTIFICA BOT DI TRADING**\n\n" + "\n\n".join(report_esecuzioni)
         send_telegram_msg(msg)
     else:
-        send_telegram_msg("🤖 Scansione completata. Nessuna operazione eseguita. Log salvati.")
+        send_telegram_msg("🤖 Scansione completata. Nessuna operazione eseguita. Log salvati sulla Dashboard.")
 
 if __name__ == "__main__":
     esegui_trading()
