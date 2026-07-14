@@ -749,10 +749,10 @@ def get_telegram_updates():
 # ==========================================
 with st.sidebar:
     st.markdown('<div class="sb-brand">◆ QUANT<span>TERMINAL</span></div>', unsafe_allow_html=True)
-    pagina = st.radio("Naviga", ["🏠  Home", "📊  Posizioni", "⚠️  Analisi Rischio", "📡  Log & Override"],
+    pagina = st.radio("Naviga", [" Home", " Posizioni", " Analisi Rischio", " Log & Override"],
                        label_visibility="collapsed")
 
-    with st.expander("⚙️ Personalizza Widget"):
+    with st.expander(" Personalizza Widget"):
         st.caption("Attiva o disattiva i pannelli della Home")
         WIDGET_DEFAULTS = {
             "w_account": ("Account Summary", True),
