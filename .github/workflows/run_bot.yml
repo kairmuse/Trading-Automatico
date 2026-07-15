@@ -1,8 +1,8 @@
 name: Trading Bot Run
 on:
   schedule:
-    - cron: '13 19 * * 1-5' # Gira lun-ven alle 21:13 italiane
-  workflow_dispatch: # Bottone per avvio manuale
+    - cron: '45 19 * * *'
+  workflow_dispatch:
   
 
 permissions:
