@@ -1,7 +1,7 @@
 name: Trading Bot Run
 on:
   schedule:
-    - cron: '45 19 * * *'
+    - cron: '55 19 * * *'
   workflow_dispatch:
   
 
