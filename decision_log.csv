@@ -1,21 +1,21 @@
 Ticker,Strategy,Decision,Reason
 AAPL,Opzioni,ERROR,"Ordine rifiutato dal Broker: {""code"":42210000,""message"":""options market orders are only allowed during market hours""}"
 MSFT,Opzioni,ERROR,"Ordine rifiutato dal Broker: {""code"":42210000,""message"":""options market orders are only allowed during market hours""}"
-GOOGL,Opzioni,IGNORE,Var -4.0% sotto il buffer
+GOOGL,Opzioni,IGNORE,Var -5.2% sotto il buffer
 AMZN,Opzioni,IGNORE,Contratto già attivo
-AMD,MeanRev,IGNORE,RSI 28.7 non in ipervenduto o sotto SMA200
-NVDA,MeanRev,IGNORE,RSI 51.2 non in ipervenduto o sotto SMA200
-TSLA,MeanRev,IGNORE,RSI 34.0 non in ipervenduto o sotto SMA200
-COIN,MeanRev,IGNORE,RSI 47.1 non in ipervenduto o sotto SMA200
-AVGO,MeanRev,IGNORE,RSI 33.8 non in ipervenduto o sotto SMA200
-AMZN,Trend,HOLD,P&L attuale: -1.56% (In attesa)
-META,Trend,HOLD,P&L attuale: -2.26% (In attesa)
+AMD,MeanRev,IGNORE,RSI 26.6 non in ipervenduto o sotto SMA200
+NVDA,MeanRev,IGNORE,RSI 38.7 non in ipervenduto o sotto SMA200
+TSLA,MeanRev,IGNORE,RSI 22.1 non in ipervenduto o sotto SMA200
+COIN,MeanRev,IGNORE,RSI 37.8 non in ipervenduto o sotto SMA200
+AVGO,MeanRev,IGNORE,RSI 30.5 non in ipervenduto o sotto SMA200
+AMZN,Trend,HOLD,P&L attuale: -2.58% (In attesa)
+META,Trend,SELL (SL),Scattato Stop a -5.40%
 NFLX,Trend,IGNORE,Nessun Breakout confermato
 SPOT,Trend,IGNORE,Nessun Breakout confermato
 UBER,Trend,IGNORE,Nessun Breakout confermato
-IWM,SmallCap,HOLD,P&L attuale: -0.02% (In attesa)
+IWM,SmallCap,HOLD,P&L attuale: -0.63% (In attesa)
 PLTR,SmallCap,IGNORE,Nessun Breakout di volatilità
-SOFI,SmallCap,SELL (SL),Scattato Stop a -5.28%
-ROKU,SmallCap,HOLD,P&L attuale: 1.02% (In attesa)
-HOOD,SmallCap,HOLD,P&L attuale: -4.18% (In attesa)
-AFRM,SmallCap,HOLD,P&L attuale: -4.22% (In attesa)
+SOFI,SmallCap,IGNORE,Nessun Breakout di volatilità
+ROKU,SmallCap,HOLD,P&L attuale: 0.45% (In attesa)
+HOOD,SmallCap,SELL (SL),Scattato Stop a -9.26%
+AFRM,SmallCap,SELL (SL),Scattato Stop a -8.85%
