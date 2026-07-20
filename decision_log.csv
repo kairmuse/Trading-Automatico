@@ -1,21 +1,21 @@
 Ticker,Strategy,Decision,Reason
 AAPL,Opzioni,ERROR,"Ordine rifiutato dal Broker: {""code"":42210000,""message"":""options market orders are only allowed during market hours""}"
 MSFT,Opzioni,ERROR,"Ordine rifiutato dal Broker: {""code"":42210000,""message"":""options market orders are only allowed during market hours""}"
-GOOGL,Opzioni,IGNORE,Var -5.2% sotto il buffer
+GOOGL,Opzioni,ERROR,"Ordine rifiutato dal Broker: {""code"":42210000,""message"":""options market orders are only allowed during market hours""}"
 AMZN,Opzioni,IGNORE,Contratto già attivo
-AMD,MeanRev,IGNORE,RSI 26.6 non in ipervenduto o sotto SMA200
-NVDA,MeanRev,IGNORE,RSI 38.7 non in ipervenduto o sotto SMA200
-TSLA,MeanRev,IGNORE,RSI 22.1 non in ipervenduto o sotto SMA200
-COIN,MeanRev,IGNORE,RSI 37.8 non in ipervenduto o sotto SMA200
-AVGO,MeanRev,IGNORE,RSI 30.5 non in ipervenduto o sotto SMA200
-AMZN,Trend,HOLD,P&L attuale: -2.58% (In attesa)
-META,Trend,SELL (SL),Scattato Stop a -5.40%
+AMD,MeanRev,IGNORE,RSI 36.0 non in ipervenduto o sotto SMA200
+NVDA,MeanRev,IGNORE,RSI 40.7 non in ipervenduto o sotto SMA200
+TSLA,MeanRev,IGNORE,RSI 14.6 non in ipervenduto o sotto SMA200
+COIN,MeanRev,IGNORE,RSI 50.6 non in ipervenduto o sotto SMA200
+AVGO,MeanRev,IGNORE,RSI 45.1 non in ipervenduto o sotto SMA200
+AMZN,Trend,HOLD,P&L attuale: -1.60% (In attesa)
+META,Trend,IGNORE,Nessun Breakout confermato
 NFLX,Trend,IGNORE,Nessun Breakout confermato
 SPOT,Trend,IGNORE,Nessun Breakout confermato
 UBER,Trend,IGNORE,Nessun Breakout confermato
-IWM,SmallCap,HOLD,P&L attuale: -0.63% (In attesa)
+IWM,SmallCap,HOLD,P&L attuale: -1.11% (In attesa)
 PLTR,SmallCap,IGNORE,Nessun Breakout di volatilità
 SOFI,SmallCap,IGNORE,Nessun Breakout di volatilità
-ROKU,SmallCap,HOLD,P&L attuale: 0.45% (In attesa)
-HOOD,SmallCap,SELL (SL),Scattato Stop a -9.26%
-AFRM,SmallCap,SELL (SL),Scattato Stop a -8.85%
+ROKU,SmallCap,HOLD,P&L attuale: 0.83% (In attesa)
+HOOD,SmallCap,IGNORE,Nessun Breakout di volatilità
+AFRM,SmallCap,IGNORE,Nessun Breakout di volatilità
